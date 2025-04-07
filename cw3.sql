@@ -107,4 +107,59 @@ JOIN
     AND t2022.sale_date = t2023.sale_date
 ORDER BY 
     p.product_name, t2022.sale_date;
+CREATE VIEW AS cw3_8
+SELECT 
+    p.product_category AS kategoria_produktu,
+    p.product_name AS produkt_nazwa,
+    s.price AS cena_produktu,
+    MIN(s.price) OVER (PARTITION BY p.product_category) AS minimalna_cena,
+    MAX(s.price) OVER (PARTITION BY p.product_category) AS maksymalna_cena,
+    MAX(s.price) OVER (PARTITION BY p.product_category) - MIN(s.price) OVER (PARTITION BY p.product_category) AS roznica_cen
+FROM 
+    products p
+JOIN 
+    sales s ON p.product_id = s.product_id
+ORDER BY 
+    p.product_category, p.product_name;
+
+CREATE VIEW AS cw3_9
+SELECT 
+    p.product_name AS produkt_nazwa,
+    s.sale_date,
+    AVG(price_window.price) AS srednia_kroczaca_cena
+FROM 
+    products p
+JOIN 
+    sales s ON p.product_id = s.product_id
+JOIN 
+    (
+        SELECT 
+            product_id, 
+            sale_date, 
+            price,
+            LAG(price) OVER (PARTITION BY product_id ORDER BY sale_date) AS prev_price,
+            LEAD(price) OVER (PARTITION BY product_id ORDER BY sale_date) AS next_price
+        FROM 
+            sales
+    ) price_window
+    ON s.product_id = price_window.product_id 
+    AND s.sale_date = price_window.sale_date
+GROUP BY 
+    p.product_name, s.sale_date
+ORDER BY 
+    p.product_name, s.sale_date;
+
+CREATE VIEW AS cw3_10
+SELECT 
+    p.product_name AS produkt_nazwa,
+    p.product_category AS kategoria_produktu,
+    s.price AS cena_produktu,
+    RANK() OVER (PARTITION BY p.product_category ORDER BY s.price DESC) AS ranking_cen,
+    DENSE_RANK() OVER (PARTITION BY p.product_category ORDER BY s.price DESC) AS ranking_gesty
+FROM 
+    products p
+JOIN 
+    sales s ON p.product_id = s.product_id
+ORDER BY 
+    p.product_category, ranking_cen;
 	
