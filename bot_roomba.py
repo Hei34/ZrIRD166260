@@ -10,27 +10,34 @@ import nltk
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 import json
+from nltk.tokenize import WordPunctTokenizer
 
 
 with open("stopwords-pl.json", "r", encoding="utf-8") as f:
     stop_words = set(json.load(f))
+# stop_words = set(stopwords.words("english"))
 
-# stop_words = set(stopwords.words("polish"))
+
 lemmatizer = WordNetLemmatizer()
 
+tokenizer = WordPunctTokenizer()
+
 def normalize_description(text):
+    #print("RAW:", repr(text))
+
     if not isinstance(text, str):
         return ""
 
     text = text.lower()
-    text = re.sub(r"http\S+|www\S+|https\S+", '', text)
 
-    text = re.sub(r"[^a-z\s]", "", text)
+    text = re.sub(r"[^\w\s]", "", text, flags=re.UNICODE)
 
-    tokens = nltk.word_tokenize(text)
-    tokens = [lemmatizer.lemmatize(word) for word in tokens if word not in stop_words]
+    tokens = tokenizer.tokenize(text)
+    #print("TOKENS:", tokens)
 
-    return " ".join(tokens)
+    cleaned = [lemmatizer.lemmatize(word) for word in tokens if word not in stop_words]
+
+    return " ".join(cleaned)
 
 chrome_options = Options()
 chrome_options.add_argument("--headless")
@@ -54,6 +61,8 @@ for card in cards:
     href = card.get_attribute("href")
     if href and href not in game_links:
         game_links.append(href)
+    if len(game_links) >= 100: #stopper
+        break
 
 print(f"Znaleziono {len(game_links)} linków.")
 
@@ -70,9 +79,9 @@ for index, link in enumerate(game_links):
             title = ""
 
         try:
-            # raw_description = driver.find_element(By.CSS_SELECTOR, ".text.game-description").text
-            # description = normalize_description(raw_description)
-            description = driver.find_element(By.CSS_SELECTOR, ".text.game-description").text
+            raw_description = driver.find_element(By.CSS_SELECTOR, ".text.game-description").text
+            description = normalize_description(raw_description)
+            #description = driver.find_element(By.CSS_SELECTOR, ".text.game-description").text
         except:
             description = ""
 
